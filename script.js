@@ -51,7 +51,6 @@ function populateTeamSelectors() {
         selectB.appendChild(optionB);
     });
 
-    // Sélection par défaut
     selectA.selectedIndex = 0;
     selectB.selectedIndex = 1;
 }
@@ -59,7 +58,7 @@ function populateTeamSelectors() {
 populateTeamSelectors();
 
 // ======================================================
-//  SIMULATION DU MATCH
+//  SIMULATION DU MATCH (MR12 + OVERTIME)
 // ======================================================
 
 function simulateMatchMR12(teamCT, teamT) {
@@ -67,12 +66,14 @@ function simulateMatchMR12(teamCT, teamT) {
     teamT.resetScore();
 
     const logs = [];
-    const totalRounds = 24; // MR12 = 12 rounds par side
-
     let currentCT = teamCT;
     let currentT = teamT;
 
-    for (let round = 1; round <= totalRounds; round++) {
+    // ============================
+    //   TEMPS RÉGLEMENTAIRE (24 rounds max)
+    // ============================
+
+    for (let round = 1; round <= 24; round++) {
 
         // Switch side après 12 rounds
         if (round === 13) {
@@ -83,17 +84,64 @@ function simulateMatchMR12(teamCT, teamT) {
 
         const roundResult = simulateSingleRound(currentCT, currentT, round);
         logs.push(roundResult.logLine);
+
+        // Victoire immédiate à 13
+        if (teamCT.score === 13 || teamT.score === 13) {
+            return { logs };
+        }
     }
 
-    return { logs };
+    // Si pas 12–12 → match terminé
+    if (teamCT.score !== 12 || teamT.score !== 12) {
+        return { logs };
+    }
+
+    // ============================
+    //   OVERTIME
+    // ============================
+
+    let overtimeBlock = 1;
+    let roundNumber = 24;
+
+    while (true) {
+        const targetScore = 12 + overtimeBlock * 3 + 1; // 16, 19, 22...
+
+        logs.push(`<div class="round-header">🔥 OVERTIME ${overtimeBlock} – Premier à ${targetScore}</div>`);
+
+        // 6 rounds par overtime (3 CT / 3 T)
+        for (let i = 0; i < 6; i++) {
+            roundNumber++;
+
+            // Switch side au milieu de l'OT
+            if (i === 3) {
+                const temp = currentCT;
+                currentCT = currentT;
+                currentT = temp;
+            }
+
+            const roundResult = simulateSingleRound(currentCT, currentT, roundNumber);
+            logs.push(roundResult.logLine);
+
+            // Victoire si une équipe atteint le score cible
+            if (teamCT.score >= targetScore || teamT.score >= targetScore) {
+                return { logs };
+            }
+        }
+
+        // Sinon → nouvel overtime
+        overtimeBlock++;
+    }
 }
 
+// ======================================================
+//  SIMULATION D’UN ROUND
+// ======================================================
+
 function simulateSingleRound(teamCT, teamT, roundNumber) {
-    // Calcul de la puissance des équipes
     const ctBase = teamCT.players.reduce((sum, p) => sum + p.baseSkill, 0);
     const tBase = teamT.players.reduce((sum, p) => sum + p.baseSkill, 0);
 
-    const ctSideBonus = 1.05; // léger avantage CT
+    const ctSideBonus = 1.05;
     const ctPower = ctBase * ctSideBonus * randomFactor(0.85, 1.15);
     const tPower = tBase * randomFactor(0.85, 1.15);
 
@@ -103,7 +151,6 @@ function simulateSingleRound(teamCT, teamT, roundNumber) {
     if (ctWins) teamCT.score++;
     else teamT.score++;
 
-    // Simulation des kills
     const eventLog = simulateKillsForRound(teamCT, teamT, ctWins);
 
     const winnerSide = ctWins ? "CT" : "T";
@@ -119,9 +166,13 @@ function randomFactor(min, max) {
     return min + Math.random() * (max - min);
 }
 
+// ======================================================
+//  KILLS
+// ======================================================
+
 function simulateKillsForRound(teamCT, teamT, ctWins) {
     const killEvents = [];
-    const totalKills = 8 + Math.floor(Math.random() * 5); // entre 8 et 12 kills
+    const totalKills = 8 + Math.floor(Math.random() * 5);
 
     for (let i = 0; i < totalKills; i++) {
         const attackerTeam = Math.random() < 0.5 ? teamCT : teamT;
@@ -136,7 +187,6 @@ function simulateKillsForRound(teamCT, teamT, ctWins) {
         killEvents.push(`${attacker.name} tue ${victim.name}`);
     }
 
-    // Dernier kill du round
     const winnerTeam = ctWins ? teamCT : teamT;
     const loserTeam = ctWins ? teamT : teamCT;
 
@@ -163,12 +213,16 @@ function pickPlayerWeighted(players) {
     return players[players.length - 1];
 }
 
+// ======================================================
+//  LOGS
+// ======================================================
+
 function formatRoundLog(roundNumber, winnerSide, winnerTeam, loserTeam, events) {
     const winnerClass = winnerSide === "CT" ? "winner-ct" : "winner-t";
 
     let log = `
         <div class="round-header">
-            Round ${roundNumber} - 
+            Round ${roundNumber} -
             <span class="${winnerClass}">${winnerTeam.name} (${winnerSide}) remporte le round</span>
         </div>
         <div>Score: ${winnerTeam.name} ${winnerTeam.score} - ${loserTeam.score} ${loserTeam.name}</div>
@@ -247,18 +301,15 @@ document.getElementById("simulateButton").addEventListener("click", () => {
     roundLogDiv.innerHTML = "";
     finalScoreDiv.textContent = "";
 
-    // Récupération des équipes choisies
     const teamAIndex = document.getElementById("teamASelect").value;
     const teamBIndex = document.getElementById("teamBSelect").value;
 
     const teamAData = TEAMS[teamAIndex];
     const teamBData = TEAMS[teamBIndex];
 
-    // Création des objets Team
     const teamA = new Team(teamAData.name, teamAData.players.map(p => new Player(p.name, p.skill)), "CT");
     const teamB = new Team(teamBData.name, teamBData.players.map(p => new Player(p.name, p.skill)), "T");
 
-    // Simulation
     const result = simulateMatchMR12(teamA, teamB);
 
     result.logs.forEach(line => {
