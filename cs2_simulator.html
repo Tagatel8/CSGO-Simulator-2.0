@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Simulateur de match CS2</title>
+
+    <!-- CSS externe -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Base de données des équipes -->
+    <script src="teams.js"></script>
+
+    <!-- Script principal -->
+    <script defer src="script.js"></script>
+</head>
+
+<body>
+<div class="container">
+
+    <h1>Simulateur de match Counter-Strike 2</h1>
+
+    <!-- Sélection des équipes -->
+    <h2>Choix des équipes</h2>
+    <div class="team-selectors">
+        <div>
+            <label for="teamASelect">Équipe A (CT au début)</label><br>
+            <select id="teamASelect"></select>
+        </div>
+
+        <div>
+            <label for="teamBSelect">Équipe B (T au début)</label><br>
+            <select id="teamBSelect"></select>
+        </div>
+    </div>
+
+    <!-- Bouton -->
+    <button id="simulateButton">Simuler un match MR12</button>
+
+    <!-- Score final -->
+    <div class="score" id="finalScore"></div>
+
+    <!-- Déroulé du match -->
+    <h2>Déroulé du match</h2>
+    <div class="round-log" id="roundLog"></div>
+
+    <!-- Stats -->
+    <h2>Stats joueurs</h2>
+    <div id="statsContainer"></div>
+
+    <div class="footer">
+        Prototype v2 – Sélection d’équipes + CSS externe + database séparée.
+    </div>
+
+</div>
+</body>
+</html>
